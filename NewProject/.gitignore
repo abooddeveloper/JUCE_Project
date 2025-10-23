@@ -1,0 +1,65 @@
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.opendb
+*.suo
+*.user
+*.userosscache
+*.userprefs
+
+# Build directories (JUCE-generated builds)
+Builds/
+build/
+Build/
+[Bb]uilds*/
+
+# JUCE auto-generated folders (from Projucer)
+JuceLibraryCode/
+JuceModules/
+
+# Compiled object files
+*.obj
+*.o
+*.pch
+*.pdb
+*.idb
+*.ipdb
+*.iobj
+*.res
+*.ilk
+
+# Executables / Libraries
+*.exe
+*.dll
+*.lib
+*.so
+*.dylib
+*.a
+*.app
+
+# Logs / Temporary files
+*.log
+*.tmp
+*.cache
+*.sdf
+
+# macOS and Windows system files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Backup files
+*~
+*.bak
+
+# CMake (if using CMake build)
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+cmake-build-*/
+Source/cmake-build-*/
+Source/.idea/
+Source/.vs/
+.idea/
