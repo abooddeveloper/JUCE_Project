@@ -45,7 +45,8 @@ void MainComponent::timerCallback()
         {
             // طباعة معلومات التصحيح أثناء التشغيل
             DBG("🎵 Audio is PLAYING - Position: " +
-                juce::String(audioPlayer.getCurrentPosition()));
+                juce::String(audioPlayer.getCurrentPosition(),2));
+                " | Looping: " + juce::String(audioPlayer.isLooping() ? "ON" : "OFF"));
         }
     }
 }

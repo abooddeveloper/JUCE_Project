@@ -20,7 +20,7 @@ public:
     void sliderValueChanged(juce::Slider* slider) override;
 
     void updatePlayButton(); // تحديث حالة زر التشغيل
-
+    void updateLoopButton(); 
 private:
     PlayerAudio& audioPlayer; // المرجع إلى معالج الصوت
 
@@ -30,7 +30,7 @@ private:
     juce::TextButton stopButton{ "Stop" };
     juce::TextButton restartButton{ "Restart" };
     juce::Slider volumeSlider; // منزلق التحكم في الصوت
-
+      juce::ToggleButton loopButton{ "Loop" };
     void loadFile(); // دالة تحميل الملف
     std::unique_ptr<juce::FileChooser> fileChooser; // منتقي الملفات
 };

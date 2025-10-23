@@ -39,4 +39,5 @@ private:
     bool playing = false;          // حالة التشغيل
     float currentVolume = 0.5f;    // مستوى الصوت الحالي
     juce::String currentFileName;  // اسم الملف الحالي
+    bool looping = false;
 };

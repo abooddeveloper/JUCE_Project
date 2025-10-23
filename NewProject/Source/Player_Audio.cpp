@@ -23,6 +23,11 @@ void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
     {
         // الحصول على البيانات الصوتية من المصدر
         transportSource.getNextAudioBlock(bufferToFill);
+        if (looping && !transportSource.isPlaying())
+        {
+            transportSource.setPosition(0.0);
+            transportSource.start();
+        }
     }
     else
     {
@@ -36,6 +41,26 @@ void PlayerAudio::releaseResources()
     // تحرير موارد مصدر النقل
     transportSource.releaseResources();
 }
+void PlayerAudio::setLooping(bool shouldLoop)
+{
+    looping = shouldLoop;
+    
+    if (readerSource != nullptr)
+    {
+        readerSource->setLooping(shouldLoop);
+    }
+}
+
+bool PlayerAudio::isLooping() const
+{
+    return looping;
+}
+
+void PlayerAudio::toggleLoop()
+{
+    setLooping(!looping);
+}
+
 
 void PlayerAudio::loadFile(const juce::File& file)
 {
@@ -53,7 +78,7 @@ void PlayerAudio::loadFile(const juce::File& file)
         {
             // إنشاء مصدر الصوت من القارئ
             readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
-
+             readerSource->setLooping(looping);
             // توصيل المصدر بمصدر النقل
             transportSource.setSource(readerSource.get(),
                 0, // timeout

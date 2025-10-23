@@ -16,6 +16,10 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioProcessor)
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
+     loopButton.setClickingTogglesState(true);
+
+    updateLoopButton();  // Set initial state  
+
     updatePlayButton(); // تحديث حالة زر التشغيل الأولي
 }
 
@@ -35,7 +39,7 @@ void PlayerGUI::resized()
     playPauseButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
     stopButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
     restartButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
-
+      loopButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
     // وضع منزلق الصوت في المنطقة المتبقية
     volumeSlider.setBounds(area.removeFromTop(30).reduced(20, 5));
 }
@@ -61,7 +65,8 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                     // تحميل الملف المحدد
                     audioPlayer.loadFile(file);
                     updatePlayButton(); // تحديث واجهة المستخدم
-                }
+                    updateLoopButton();            
+                 }
             });
     }
     else if (button == &playPauseButton)
@@ -82,7 +87,17 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         audioPlayer.restart();
         updatePlayButton();
     }
+     else if (button == &loopButton) 
+    {
+        // Toggle looping state
+        audioPlayer.toggleLoop();
+        updateLoopButton();  // Update button appearance
+        
+        // Debug output
+        DBG("Looping: " + juce::String(audioPlayer.isLooping() ? "ON" : "OFF"));
+    }
 }
+
 
 void PlayerGUI::sliderValueChanged(juce::Slider* slider)
 {
@@ -110,7 +125,21 @@ void PlayerGUI::updatePlayButton()
         playPauseButton.setEnabled(false); // تعطيل الزر إذا لم يكن هناك ملف محمل
     }
 }
-
+void PlayerGUI::updateLoopButton()
+{
+    // Update loop button appearance based on state
+    if (audioPlayer.isLooping()) {
+        loopButton.setButtonText("Loop: ON");
+        loopButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::green);
+    }
+    else {
+        loopButton.setButtonText("Loop: OFF");
+        loopButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::red);
+    }
+    
+    // Enable/disable based on whether a file is loaded
+    loopButton.setEnabled(audioPlayer.isFileLoaded());
+}
 void PlayerGUI::loadFile()
 {
     // تم التنفيذ في buttonClicked
