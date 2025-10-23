@@ -141,6 +141,20 @@ void PlayerAudio::togglePlayPause()
         play();
     }
 }
+void PlayerAudio::togglemute() const
+{
+    if (ismuted)
+    {
+        setGain(currentVolume);
+        ismuted = false;
+    }
+    else
+    {
+        currentVolume = transportSource.getGain();
+        setGain(0.0f);
+        ismuted = true;
+    }
+}
 
 void PlayerAudio::setGain(float gain)
 {
@@ -162,6 +176,10 @@ bool PlayerAudio::isPaused() const
 {
     return !playing && transportSource.getCurrentPosition() > 0.0;
 }
+bool PlayerAudio::togglemuted() const
+{
+    return ismuted;
+}
 
 bool PlayerAudio::isFileLoaded() const
 {
@@ -180,6 +198,7 @@ double PlayerAudio::getTotalLength() const
     return 0.0;
 }
 
+
 juce::String PlayerAudio::getDebugInfo() const
 {
     juce::String info;
@@ -187,5 +206,7 @@ juce::String PlayerAudio::getDebugInfo() const
     info += "Loaded: " + juce::String(isFileLoaded() ? "Yes" : "No") + "\n";
     info += "Playing: " + juce::String(isPlaying() ? "Yes" : "No") + "\n";
     info += "Position: " + juce::String(getCurrentPosition()) + "\n";
+	info += "Muted: " + juce::String(togglemute() ? "Yes" : "No") + "\n";
+
     return info;
 }

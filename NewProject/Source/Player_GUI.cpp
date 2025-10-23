@@ -4,7 +4,7 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioProcessor)
     : audioPlayer(audioProcessor)
 {
     // إعداد الأزرار وإضافة المستمعين
-    for (auto* btn : { &loadButton, &playPauseButton, &stopButton, &restartButton })
+    for (auto* btn : { &loadButton, &playPauseButton, &stopButton, &restartButton ,&muteButton})
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
@@ -40,6 +40,7 @@ void PlayerGUI::resized()
     stopButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
     restartButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
       loopButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
+	  muteButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
     // وضع منزلق الصوت في المنطقة المتبقية
     volumeSlider.setBounds(area.removeFromTop(30).reduced(20, 5));
 }
@@ -96,6 +97,11 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         // Debug output
         DBG("Looping: " + juce::String(audioPlayer.isLooping() ? "ON" : "OFF"));
     }
+   else if (button == &muteButton)
+    {
+        // كتم/إلغاء كتم الصوت
+        audioPlayer.togglemuted();
+	}
 }
 
 
@@ -140,6 +146,8 @@ void PlayerGUI::updateLoopButton()
     // Enable/disable based on whether a file is loaded
     loopButton.setEnabled(audioPlayer.isFileLoaded());
 }
+
+
 void PlayerGUI::loadFile()
 {
     // تم التنفيذ في buttonClicked

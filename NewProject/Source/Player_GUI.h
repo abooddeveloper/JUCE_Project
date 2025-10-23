@@ -30,7 +30,8 @@ private:
     juce::TextButton stopButton{ "Stop" };
     juce::TextButton restartButton{ "Restart" };
     juce::Slider volumeSlider; // منزلق التحكم في الصوت
-      juce::ToggleButton loopButton{ "Loop" };
+    juce::TextButton muteButton{ "Mute" };
+    juce::ToggleButton loopButton{ "Loop" };
     void loadFile(); // دالة تحميل الملف
     std::unique_ptr<juce::FileChooser> fileChooser; // منتقي الملفات
 };
