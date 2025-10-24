@@ -1,28 +1,39 @@
 ﻿#include "Player_Audio.h"
 
+// ==============================================================================
+// البناء - تهيئة معالج الصوت
+// ==============================================================================
 PlayerAudio::PlayerAudio()
 {
     formatManager.registerBasicFormats(); // تسجيل التنسيقات الأساسية (WAV, AIFF, etc.)
     setAudioChannels(0, 2); // إعداد قنوات الصوت (0 مدخلات، 2 مخرجات)
 }
 
+// ==============================================================================
+// التدمير - تنظيف الموارد
+// ==============================================================================
 PlayerAudio::~PlayerAudio()
 {
     shutdownAudio(); // إيقاف نظام الصوت
 }
 
+// ==============================================================================
+// تحضير الصوت للتشغيل
+// ==============================================================================
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
-    // تحضير مصدر النقل للتشغيل
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
+// ==============================================================================
+// الحصول على كتلة الصوت التالية
+// ==============================================================================
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
     if (readerSource != nullptr && transportSource.isPlaying())
     {
-        // الحصول على البيانات الصوتية من المصدر
         transportSource.getNextAudioBlock(bufferToFill);
+        // معالجة التكرار التلقائي
         if (looping && !transportSource.isPlaying())
         {
             transportSource.setPosition(0.0);
@@ -31,20 +42,24 @@ void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
     }
     else
     {
-        // ملء المخزن بالصمت إذا لم يكن هناك تشغيل
-        bufferToFill.clearActiveBufferRegion();
+        bufferToFill.clearActiveBufferRegion(); // ملء المخزن بالصمت
     }
 }
 
+// ==============================================================================
+// تحرير موارد الصوت
+// ==============================================================================
 void PlayerAudio::releaseResources()
 {
-    // تحرير موارد مصدر النقل
     transportSource.releaseResources();
 }
+
+// ==============================================================================
+// ضبط وضع التكرار
+// ==============================================================================
 void PlayerAudio::setLooping(bool shouldLoop)
 {
     looping = shouldLoop;
-    
     if (readerSource != nullptr)
     {
         readerSource->setLooping(shouldLoop);
@@ -61,24 +76,52 @@ void PlayerAudio::toggleLoop()
     setLooping(!looping);
 }
 
+// ==============================================================================
+// كتم/إلغاء كتم الصوت
+// ==============================================================================
+void PlayerAudio::toggleMute()
+{
+    if (isMutedFlag)
+    {
+        // إلغاء الكتم - استعادة مستوى الصوت السابق
+        setGain(volumeBeforeMute);
+        isMutedFlag = false;
+    }
+    else
+    {
+        // كتم الصوت - حفظ المستوى الحالي وتعيينه إلى صفر
+        volumeBeforeMute = transportSource.getGain();
+        setGain(0.0f);
+        isMutedFlag = true;
+    }
+}
 
+bool PlayerAudio::isMuted() const
+{
+    return isMutedFlag;
+}
+
+// ==============================================================================
+// تحميل ملف صوتي
+// ==============================================================================
 void PlayerAudio::loadFile(const juce::File& file)
 {
     if (file.existsAsFile())
     {
-        // إيقاف الصوت أولاً
+        // إيقاف الصوت أولاً وتنظيف المصدر الحالي
         transportSource.stop();
         transportSource.setSource(nullptr);
         readerSource.reset();
 
-        // محاولة فتح الملف
+        // محاولة فتح الملف وإنشاء قارئ
         auto* reader = formatManager.createReaderFor(file);
 
         if (reader != nullptr)
         {
             // إنشاء مصدر الصوت من القارئ
             readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
-             readerSource->setLooping(looping);
+            readerSource->setLooping(looping);
+
             // توصيل المصدر بمصدر النقل
             transportSource.setSource(readerSource.get(),
                 0, // timeout
@@ -95,11 +138,14 @@ void PlayerAudio::loadFile(const juce::File& file)
         }
         else
         {
-            currentFileName = "";
+            currentFileName = ""; // فشل التحميل
         }
     }
 }
 
+// ==============================================================================
+// دوال التحكم في التشغيل
+// ==============================================================================
 void PlayerAudio::play()
 {
     if (readerSource != nullptr)
@@ -141,32 +187,27 @@ void PlayerAudio::togglePlayPause()
         play();
     }
 }
-void PlayerAudio::togglemute() const
-{
-    if (ismuted)
-    {
-        setGain(currentVolume);
-        ismuted = false;
-    }
-    else
-    {
-        currentVolume = transportSource.getGain();
-        setGain(0.0f);
-        ismuted = true;
-    }
-}
 
+// ==============================================================================
+// ضبط مستوى الصوت
+// ==============================================================================
 void PlayerAudio::setGain(float gain)
 {
     currentVolume = gain;
-    transportSource.setGain(gain); // ضبط مستوى الصوت
+    transportSource.setGain(gain);
 }
 
+// ==============================================================================
+// ضبط موضع التشغيل
+// ==============================================================================
 void PlayerAudio::setPosition(double position)
 {
-    transportSource.setPosition(position); // ضبط موضع التشغيل
+    transportSource.setPosition(position);
 }
 
+// ==============================================================================
+// دوال الاستعلام عن الحالة
+// ==============================================================================
 bool PlayerAudio::isPlaying() const
 {
     return playing;
@@ -175,10 +216,6 @@ bool PlayerAudio::isPlaying() const
 bool PlayerAudio::isPaused() const
 {
     return !playing && transportSource.getCurrentPosition() > 0.0;
-}
-bool PlayerAudio::togglemuted() const
-{
-    return ismuted;
 }
 
 bool PlayerAudio::isFileLoaded() const
@@ -198,7 +235,9 @@ double PlayerAudio::getTotalLength() const
     return 0.0;
 }
 
-
+// ==============================================================================
+// الحصول على معلومات التصحيح
+// ==============================================================================
 juce::String PlayerAudio::getDebugInfo() const
 {
     juce::String info;
@@ -206,7 +245,8 @@ juce::String PlayerAudio::getDebugInfo() const
     info += "Loaded: " + juce::String(isFileLoaded() ? "Yes" : "No") + "\n";
     info += "Playing: " + juce::String(isPlaying() ? "Yes" : "No") + "\n";
     info += "Position: " + juce::String(getCurrentPosition()) + "\n";
-	info += "Muted: " + juce::String(togglemute() ? "Yes" : "No") + "\n";
+    info += "Muted: " + juce::String(isMuted() ? "Yes" : "No") + "\n";
+    info += "Looping: " + juce::String(isLooping() ? "ON" : "OFF") + "\n";
 
     return info;
 }
