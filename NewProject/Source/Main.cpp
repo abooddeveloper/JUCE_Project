@@ -7,30 +7,39 @@
 
   ==============================================================================
 */
+
 #include <JuceHeader.h>
 #include "MainComponent.h"
 
-// تطبيق JUCE الرئيسي
+// ==============================================================================
+// تطبيق JUCE الرئيسي - نقطة الدخول للتطبيق
+// ==============================================================================
 class SimpleAudioPlayer : public juce::JUCEApplication
 {
 public:
+    // الحصول على اسم التطبيق
     const juce::String getApplicationName() override { return "Simple Audio Player"; }
+
+    // الحصول على إصدار التطبيق
     const juce::String getApplicationVersion() override { return "1.0"; }
 
+    // التهيئة - تنفيذ عند بدء التطبيق
     void initialise(const juce::String&) override
     {
         // إنشاء النافذة الرئيسية عند بدء التطبيق
         mainWindow = std::make_unique<MainWindow>(getApplicationName());
     }
 
+    // الإغلاق - تنظيف الذاكرة عند إنهاء التطبيق
     void shutdown() override
     {
-        // تنظيف الذاكرة عند إغلاق التطبيق
-        mainWindow = nullptr;
+        mainWindow = nullptr; // تنظيف الذاكرة
     }
 
 private:
+    // ==========================================================================
     // النافذة الرئيسية للتطبيق
+    // ==========================================================================
     class MainWindow : public juce::DocumentWindow
     {
     public:
@@ -45,15 +54,17 @@ private:
             setVisible(true); // جعل النافذة مرئية
         }
 
+        // معالجة ضغط زر الإغلاق
         void closeButtonPressed() override
         {
-            // طلب إغلاق التطبيق عند الضغط على زر الإغلاق
             juce::JUCEApplication::getInstance()->systemRequestedQuit();
         }
     };
 
-    std::unique_ptr<MainWindow> mainWindow;
+    std::unique_ptr<MainWindow> mainWindow; // مؤشر للنافذة الرئيسية
 };
 
-// بدء تشغيل تطبيق JUCE
+// ==============================================================================
+// بدء تشغيل تطبيق JUCE - الماكرو المطلوب لتشغيل التطبيق
+// ==============================================================================
 START_JUCE_APPLICATION(SimpleAudioPlayer)
