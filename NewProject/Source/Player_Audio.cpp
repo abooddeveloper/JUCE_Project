@@ -37,6 +37,7 @@ void PlayerAudio::releaseResources()
     transportSource.releaseResources();
 }
 
+
 void PlayerAudio::loadFile(const juce::File& file)
 {
     if (file.existsAsFile())
@@ -47,8 +48,8 @@ void PlayerAudio::loadFile(const juce::File& file)
         readerSource.reset();
 
         // محاولة فتح الملف
-        auto* reader = formatManager.createReaderFor(file);
-
+        reader = formatManager.createReaderFor(file);
+        total_time = (reader->lengthInSamples / reader->sampleRate);
         if (reader != nullptr)
         {
             // إنشاء مصدر الصوت من القارئ
@@ -74,7 +75,25 @@ void PlayerAudio::loadFile(const juce::File& file)
         }
     }
 }
-
+bool PlayerAudio::label_time_visibility() {
+    if (isFileLoaded()) {
+        return true;
+    }
+    else { return false; }
+}
+void PlayerAudio::set_loop_by_buttons(double start_point, double end_point) {
+    start_position_time = start_point * total_time;
+    end_position_time = end_point * total_time;
+}
+bool PlayerAudio::loop_position_state() {
+    if (transportSource.getCurrentPosition() >= end_position_time) {
+        return true;
+    }
+    else { return false; }
+}
+void  PlayerAudio::set_slider_looping() {
+    transportSource.setPosition(start_position_time);
+}
 void PlayerAudio::play()
 {
     if (readerSource != nullptr)
@@ -83,7 +102,27 @@ void PlayerAudio::play()
         playing = true;
     }
 }
-
+bool PlayerAudio::is_transportSource_playing() {
+    return(!transportSource.isPlaying());
+}
+void PlayerAudio::loop_on() {
+    /*readerSource->setLooping(true);*/
+    if (!transportSource.isPlaying()) {
+        transportSource.setPosition(0.0);
+        transportSource.start();
+    }
+}
+void PlayerAudio::position_slider_value(double slider_value) {
+    double new_position = slider_value * total_time;
+    transportSource.setPosition(new_position);
+}
+double PlayerAudio::get_total_time() {
+    return total_time;
+}
+double PlayerAudio::get_current_time() {
+    current_time = transportSource.getCurrentPosition();
+    return current_time;
+}
 void PlayerAudio::pause()
 {
     transportSource.stop();

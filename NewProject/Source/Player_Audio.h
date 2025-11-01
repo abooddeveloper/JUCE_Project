@@ -3,16 +3,17 @@
 
 // معالج الصوت المسؤول عن تحميل وتشغيل الملفات الصوتية
 class PlayerAudio : public juce::AudioAppComponent
+                    
+             
 {
 public:
     PlayerAudio();
     ~PlayerAudio() override;
-
     // دوال AudioAppComponent المطلوبة
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
-
+    void position_slider_value(double slider_value);
     // دوال التحكم في التشغيل
     void loadFile(const juce::File& file); // تحميل ملف صوتي
     void play();     // تشغيل
@@ -22,21 +23,35 @@ public:
     void togglePlayPause(); // تبديل بين التشغيل والإيقاف المؤقت
     void setGain(float gain); // ضبط مستوى الصوت
     void setPosition(double position); // ضبط موضع التشغيل
-
+    void loop_on();
+   /* void loop_off();*/
     // دوال الاستعلام عن الحالة
     bool isPlaying() const;     // هل يتم التشغيل حالياً؟
     bool isPaused() const;      // هل متوقف مؤقتاً؟
     bool isFileLoaded() const;  // هل هناك ملف محمل؟
     double getCurrentPosition() const; // الموضع الحالي
     double getTotalLength() const;     // الطول الكلي للملف
-
+    
     juce::String getDebugInfo() const; // معلومات التصحيح
-
+    bool label_time_visibility();
+    bool loop_position_state();
+    void set_slider_looping();
+    void set_loop_by_buttons(double start_point, double end_point);
+    double get_total_time();
+    double get_current_time();
+    bool is_transportSource_playing();
 private:
     juce::AudioFormatManager formatManager;        // مدير تنسيقات الصوت
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource; // مصدر القارئ
     juce::AudioTransportSource transportSource;    // مصدر النقل للتحكم في التشغيل
     bool playing = false;          // حالة التشغيل
     float currentVolume = 0.5f;    // مستوى الصوت الحالي
-    juce::String currentFileName;  // اسم الملف الحالي
+    juce::String currentFileName;   // اسم الملف الحالي
+    double current_time;
+    double total_time;
+    juce::String time_text;
+    juce::AudioFormatReader* reader;
+    double start_position_time;
+    double end_position_time;
+    bool if_looping;
 };
