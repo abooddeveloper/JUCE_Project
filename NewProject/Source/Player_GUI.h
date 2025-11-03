@@ -2,6 +2,29 @@
 #include <JuceHeader.h>
 #include "Player_Audio.h"
 
+//  مكون عرض الموجة الصوتية
+// ==============================================================================
+class WaveformDisplay : public juce::Component,
+    public juce::ChangeListener
+{
+public:
+    WaveformDisplay(PlayerAudio& audio);
+    ~WaveformDisplay() override;
+
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+
+    // تحديث الموضع الحالي
+    void setPosition(double pos);
+
+    //  معالجة التغييرات في المصغرة
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+
+private:
+    PlayerAudio& audioPlayer;
+    double position = 0.0;
+    juce::AudioThumbnail& thumbnail;
+};
 // ==============================================================================
 // واجهة المستخدم للتحكم في مشغل الصوت
 // ==============================================================================
@@ -60,7 +83,10 @@ private:
     juce::TextButton muteButton{ "Mute" };
     juce::ToggleButton loopButton{ "Loop" };
     juce::Slider volumeSlider; // منزلق التحكم في الصوت
-
+    WaveformDisplay waveformDisplay; // عرض الموجة الصوتية
+    
+    juce::Slider speedSlider;        //  منزلق التحكم في السرعة
+    juce::Label speedLabel;          //  تسمية منزلق السرعة
     juce::TextButton loop_button{ "loop" };
     juce::Slider position_slider;
     juce::Slider loop_slider;

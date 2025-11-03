@@ -34,4 +34,6 @@ public:
 private:
     PlayerAudio audioPlayer;      // معالج الصوت
     PlayerGUI guiComponent;       // واجهة المستخدم
+    //  زيادة حجم النافذة لاستيعاب الميزات الجديد
+    juce::Rectangle<int> originalSize{ 600, 350 }; // كان 600, 200
 };

@@ -8,7 +8,7 @@ MainComponent::MainComponent()
     guiComponent(audioPlayer)
 {
     addAndMakeVisible(guiComponent); // إضافة واجهة المستخدم وجعلها مرئية
-    setSize(600, 200); // تحديد حجم المكون
+    setSize(600, 350); // تحديد حجم المكون
 
     // بدء المؤقت للتحديثات الدورية (حوالي 30 إطار في الثانية)
     startTimer(33);

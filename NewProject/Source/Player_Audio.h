@@ -36,7 +36,10 @@ public:
     void togglePlayPause(); // تبديل بين التشغيل والإيقاف المؤقت
     void setGain(float gain); // ضبط مستوى الصوت
     void setPosition(double position); // ضبط موضع التشغيل
-
+    void setPlaybackSpeed(float speed); // ضبط سرعة التشغيل
+    float getPlaybackSpeed() const; // الحصول على سرعة التشغيل الحالية
+    void createAudioThumbnail(); // إنشاء مصغرة صوتية للموجة
+    juce::AudioThumbnail& getAudioThumbnail(); // الحصول على المصغرة الصوتية
     void loop_on();
    /* void loop_off();*/
 
@@ -76,6 +79,9 @@ private:
     juce::AudioFormatManager formatManager;        // مدير تنسيقات الصوت
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource; // مصدر القارئ
     juce::AudioTransportSource transportSource;    // مصدر النقل للتحكم في التشغيل
+    juce::ResamplingAudioSource resampleSource; // مصدر إعادة العينات للتحكم في السرعة
+    juce::AudioThumbnailCache thumbnailCache; // مخزن المصغرات
+    juce::AudioThumbnail audioThumbnail; // المصغرة الصوتية
     bool playing = false;          // حالة التشغيل
     float currentVolume = 0.5f;    // مستوى الصوت الحالي
 
@@ -88,9 +94,10 @@ private:
     double end_position_time;
     bool if_looping;
 
-   
+    
     bool looping = false;          // حالة التكرار
     bool isMutedFlag = false;      // حالة الكتم
     float volumeBeforeMute = 0.5f; // مستوى الصوت قبل الكتم
-
+    double currentSampleRate = 44100.0; // معدل العينات الحالي
+    float playbackSpeed = 1.0f; // سرعة التشغيل الحالية 1.0 = سرعة عادي
 };

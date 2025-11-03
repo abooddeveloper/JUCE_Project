@@ -4,6 +4,9 @@
 // البناء - تهيئة معالج الصوت
 // ==============================================================================
 PlayerAudio::PlayerAudio()
+    : thumbnailCache(5), //  مخزن لـ5 مصغرات
+      audioThumbnail(512, formatManager, thumbnailCache), // مصغرة صوتية
+      resampleSource(&transportSource, false) //  مصدر إعادة العينات
 {
     formatManager.registerBasicFormats(); // تسجيل التنسيقات الأساسية (WAV, AIFF, etc.)
     setAudioChannels(0, 2); // إعداد قنوات الصوت (0 مدخلات، 2 مخرجات)
@@ -22,6 +25,8 @@ PlayerAudio::~PlayerAudio()
 // ==============================================================================
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
+    currentSampleRate = sampleRate; // حفظ معدل العينات
+    resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate); // [NEW] تحضير مصدر إعادة العينات
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
@@ -32,6 +37,8 @@ void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
 {
     if (readerSource != nullptr && transportSource.isPlaying())
     {
+        //  استخدام مصدر إعادة العينات بدلاً من مصدر النقل مباشرة
+        resampleSource.getNextAudioBlock(bufferToFill);
         transportSource.getNextAudioBlock(bufferToFill);
         // معالجة التكرار التلقائي
         if (looping && !transportSource.isPlaying())
@@ -110,6 +117,18 @@ void PlayerAudio::loadFile(const juce::File& file)
             // إنشاء مصدر الصوت من القارئ
             readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
             readerSource->setLooping(looping);
+            //  توصيل مصدر القارئ بمصدر النقل
+            transportSource.setSource(readerSource.get(), 0, nullptr, reader->sampleRate);
+
+            //  إنشاء المصغرة الصوتية للموجة
+            createAudioThumbnail();
+
+            transportSource.setPosition(0.0);
+            currentFileName = file.getFileName();
+            playing = false;
+
+            // إعادة تعيين السرعة إلى الوضع الطبيعي عند تحميل ملف جديد
+            setPlaybackSpeed(1.0f);
 
             // توصيل المصدر بمصدر النقل
             transportSource.setSource(readerSource.get(),
@@ -151,6 +170,13 @@ bool PlayerAudio::loop_position_state() {
 void  PlayerAudio::set_slider_looping() {
     transportSource.setPosition(start_position_time);
 }
+void PlayerAudio::setPlaybackSpeed(float speed)
+{
+    playbackSpeed = juce::jlimit(0.25f, 4.0f, speed); // تحديد السرعة بين 0.25x و4x
+
+    // ضبط نسبة إعادة العينة بناءً على السرعة
+    resampleSource.setResamplingRatio(playbackSpeed);
+}
 
 // ==============================================================================
 // دوال التحكم في التشغيل
@@ -184,6 +210,16 @@ double PlayerAudio::get_total_time() {
 double PlayerAudio::get_current_time() {
     current_time = transportSource.getCurrentPosition();
     return current_time;
+}
+void PlayerAudio::createAudioThumbnail()
+{
+    // سيتم استدعاء هذه الدالة عند تحميل ملف جديد
+    if (reader != nullptr)
+    {
+        audioThumbnail.clear();
+        //  تحميل المصغرة من القارئ
+        audioThumbnail.setSource(new juce::FileInputSource(juce::File(currentFileName)));
+    }
 }
 void PlayerAudio::pause()
 {
@@ -263,6 +299,14 @@ double PlayerAudio::getTotalLength() const
     if (readerSource != nullptr && readerSource->getAudioFormatReader() != nullptr)
         return readerSource->getTotalLength() / readerSource->getAudioFormatReader()->sampleRate;
     return 0.0;
+}
+float PlayerAudio::getPlaybackSpeed() const
+{
+    return playbackSpeed;
+}
+juce::AudioThumbnail& PlayerAudio::getAudioThumbnail()
+{
+    return audioThumbnail;
 }
 
 // ==============================================================================

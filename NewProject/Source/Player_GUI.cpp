@@ -1,5 +1,66 @@
 ﻿#include "Player_GUI.h"
 
+//  تنفيذ مكون عرض الموجة الصوتية
+// ==============================================================================
+WaveformDisplay::WaveformDisplay(PlayerAudio& audio)
+    : audioPlayer(audio), thumbnail(audioPlayer.getAudioThumbnail())
+{
+    thumbnail.addChangeListener(this); //  الاستماع للتغييرات في المصغرة
+}
+
+WaveformDisplay::~WaveformDisplay()
+{
+    thumbnail.removeChangeListener(this);
+}
+
+void WaveformDisplay::paint(juce::Graphics& g)
+{
+    g.fillAll(juce::Colours::darkgrey);
+
+    auto area = getLocalBounds();
+
+    //  رسم الموجة الصوتية
+    if (thumbnail.getTotalLength() > 0.0)
+    {
+        g.setColour(juce::Colours::lightblue);
+        thumbnail.drawChannel(g, area, 0.0, thumbnail.getTotalLength(), 0, 1.0f);
+
+        //  رسم مؤشر الموضع الحالي
+        auto audioPosition = (position / thumbnail.getTotalLength()) * getWidth();
+        g.setColour(juce::Colours::red);
+        g.drawLine(audioPosition, 0, audioPosition, getHeight(), 2.0f);
+
+        //  رسم مربع حول المؤشر
+        g.setColour(juce::Colours::white);
+        g.drawRect(area, 1);
+    }
+    else
+    {
+        //  رسالة عندما لا يكون هناك موجة معروضة
+        g.setColour(juce::Colours::white);
+        g.drawFittedText("No audio file loaded", area, juce::Justification::centred, 1);
+    }
+}
+
+void WaveformDisplay::resized()
+{
+    // لا حاجة لتنفيذ خاص هنا
+}
+
+void WaveformDisplay::setPosition(double pos)
+{
+    position = pos;
+    repaint(); // إعادة الرسم عند تغيير الموضع
+}
+
+void WaveformDisplay::changeListenerCallback(juce::ChangeBroadcaster* source)
+{
+    if (source == &thumbnail)
+    {
+        repaint(); // إعادة الرسم عند تحديث المصغرة
+    }
+}
+
 // ==============================================================================
 // البناء - تهيئة واجهة المستخدم
 // ==============================================================================
@@ -24,6 +85,21 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioProcessor)
     loopButton.setClickingTogglesState(true);
     loopButton.addListener(this);
     addAndMakeVisible(loopButton);
+    //  إعداد منزلق السرعة
+    // ==========================================================================
+    speedSlider.setRange(0.25, 4.0, 0.05); // من 0.25x إلى 4x السرعة
+    speedSlider.setValue(1.0); // سرعة عادية
+    speedSlider.setSkewFactor(0.5); // جعل المنزلق لوغاريتمي
+    speedSlider.addListener(this);
+    addAndMakeVisible(speedSlider);
+
+    speedLabel.setText("Speed:", juce::dontSendNotification);
+    speedLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    addAndMakeVisible(speedLabel);
+
+    // ==========================================================================
+    //  إضافة عرض الموجة
+    addAndMakeVisible(waveformDisplay);
 
     // ==========================================================================
     // إعداد منزلق الصوت
@@ -54,6 +130,7 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioProcessor)
     loop_slider.addListener(this);
     loop_button.setClickingTogglesState(true);
     range_loop_button.setClickingTogglesState(true);
+
     updatePlayButton(); // تحديث حالة زر التشغيل الأولي
 
 
@@ -81,7 +158,9 @@ void PlayerGUI::resized()
 {
     auto area = getLocalBounds();
     auto buttonRow = area.removeFromTop(50); // صف للأزرار
-
+    //  تخصيص مساحة لعرض الموجة
+    auto waveformArea = area.removeFromTop(80); // 80 بكسل لعرض الموجة
+    waveformDisplay.setBounds(waveformArea.reduced(5));
     // توزيع الأزرار في الصف بشكل متساو
     loadButton.setBounds(buttonRow.removeFromLeft(100).reduced(2));
     playPauseButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
@@ -93,6 +172,10 @@ void PlayerGUI::resized()
 
     loopButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
     muteButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
+    // إضافة منزلق السرعة في صف الأزرار
+    auto speedArea = buttonRow.removeFromLeft(120).reduced(2);
+    speedLabel.setBounds(speedArea.removeFromLeft(50));
+    speedSlider.setBounds(speedArea);
 
 
     // وضع منزلق الصوت في المنطقة المتبقية
@@ -176,6 +259,10 @@ void PlayerGUI::timerCallback() {
     time_text = time_in_minutes(current_time) + ":" + time_in_seconds(current_time) + " / " + time_in_minutes(total_time) + ":" + time_in_seconds(total_time);
     label_time.setText(time_text, juce::dontSendNotification);
     position_slider.setValue(current_time / total_time, juce::dontSendNotification);
+
+    // تحديث عرض الموجة بالموضع الحالي
+    waveformDisplay.setPosition(current_time);
+    
     if (range_loop_button.getToggleState() && audioPlayer.loop_position_state()) {
         audioPlayer.set_slider_looping();
     }
@@ -205,6 +292,11 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
         audioPlayer.set_loop_by_buttons(loop_start_point, loop_end_point);
         audioPlayer.set_slider_looping();
 
+    }
+    //  معالجة تغيير سرعة التشغيل
+    else if (slider == &speedSlider)
+    {
+        audioPlayer.setPlaybackSpeed((float)speedSlider.getValue());
     }
 }
 juce::String PlayerGUI::time_in_minutes(double time) {
