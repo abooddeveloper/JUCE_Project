@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="vt1URN" name="NewProject" projectType="guiapp" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+  <MAINGROUP id="l1MPCH" name="NewProject">
+    <GROUP id="{DE8EC64D-C0EA-ED98-3820-BCF2534F25FB}" name="Source">
+      <FILE id="K8m4VO" name="Player_Audio.cpp" compile="1" resource="0"
+            file="Source/Player_Audio.cpp"/>
+      <FILE id="t868Bm" name="Player_Audio.h" compile="0" resource="0" file="Source/Player_Audio.h"/>
+      <FILE id="b9hTkb" name="Player_GUI.cpp" compile="1" resource="0" file="Source/Player_GUI.cpp"/>
+      <FILE id="U27rSJ" name="Player_GUI.h" compile="0" resource="0" file="Source/Player_GUI.h"/>
+    </GROUP>
+    <FILE id="qwPqxH" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+    <FILE id="r8aF5V" name="MainComponent.cpp" compile="1" resource="0"
+          file="Source/MainComponent.cpp"/>
+    <FILE id="mv6gbi" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
+  </MAINGROUP>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <EXPORTFORMATS>
+    <VS2022 targetFolder="Builds/VisualStudio2022">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="NewProject"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="NewProject"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="C:/Users/abdoy/Downloads/juce-8.0.10-windows/JUCE/modules"/>
+      </MODULEPATHS>
+    </VS2022>
+  </EXPORTFORMATS>
+</JUCERPROJECT>
