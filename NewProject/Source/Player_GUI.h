@@ -2,80 +2,79 @@
 #include <JuceHeader.h>
 #include "Player_Audio.h"
 
-//  مكون عرض الموجة الصوتية
-// ==============================================================================
-class WaveformDisplay : public juce::Component,
-    public juce::ChangeListener
-{
-public:
-    WaveformDisplay(PlayerAudio& audio);
-    ~WaveformDisplay() override;
-
-    void paint(juce::Graphics& g) override;
-    void resized() override;
-
-    // تحديث الموضع الحالي
-    void setPosition(double pos);
-
-    //  معالجة التغييرات في المصغرة
-    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
-
-private:
-    PlayerAudio& audioPlayer;
-    double position = 0.0;
-    juce::AudioThumbnail& thumbnail;
-};
 // ==============================================================================
 // واجهة المستخدم للتحكم في مشغل الصوت
 // ==============================================================================
 class PlayerGUI : public juce::Component,
-                  public juce::Button::Listener,
-                  public juce::Slider::Listener,
-                  public juce::Timer
-    
+    public juce::Button::Listener,
+    public juce::Slider::Listener,
+    public juce::Timer,
+    public juce::ListBoxModel
 {
 public:
     PlayerGUI(PlayerAudio& audioProcessor);
     ~PlayerGUI() override = default;
 
-    void timerCallback() override;
-    // دوال Component
-    void paint(juce::Graphics& g) override;
-    void resized() override;
-    juce::String time_in_minutes(double time);
-    juce::String time_in_seconds(int time);
-
-
     // ==========================================================================
     // دوال Component للرسم والتخطيط
     // ==========================================================================
-    
+    void paint(juce::Graphics& g) override;
+    void resized() override;
 
     // ==========================================================================
+    // دالة Timer للتحديثات الدورية
+    // ==========================================================================
+    void timerCallback() override;
 
+    // ==========================================================================
     // معالجة الأحداث
     // ==========================================================================
     void buttonClicked(juce::Button* button) override;
     void sliderValueChanged(juce::Slider* slider) override;
 
     // ==========================================================================
+    // دوال تحويل الوقت
+    // ==========================================================================
+    juce::String time_in_minutes(double time);
+    juce::String time_in_seconds(int time);
+
+    // ==========================================================================
     // دوال تحديث الواجهة
     // ==========================================================================
     void updatePlayButton(); // تحديث حالة زر التشغيل
+    void updateLoopButton(); // تحديث حالة زر التكرار
     void updateMuteButton(); // تحديث حالة زر الكتم
+    void updateMetadataDisplay(); // تحديث عرض البيانات الوصفية (الميزة 5)
+
+    // ==========================================================================
+    // دوال ListBoxModel المطلوبة للميزة 8: قائمة التشغيل
+    // ==========================================================================
+    int getNumRows() override; // الحصول على عدد العناصر في القائمة
+    void paintListBoxItem(int rowNumber, juce::Graphics& g,
+        int width, int height, bool rowIsSelected) override; // رسم عنصر القائمة
+    void selectedRowsChanged(int lastRowSelected) override; // معالجة تغيير العنصر المحدد
+    void listBoxItemDoubleClicked(int row, const juce::MouseEvent& event) override; // معالجة النقر المزدوج
+    void backgroundClicked(const juce::MouseEvent& event) override; // معالجة النقر على الخلفية
+    void deleteKeyPressed(int lastRowSelected) override; // معالجة ضغط مفتاح الحذف
+    void returnKeyPressed(int lastRowSelected) override; // معالجة ضغط مفتاح الإدخال
 
 private:
     PlayerAudio& audioPlayer; // المرجع إلى معالج الصوت
 
-     bool will_looping;
-     
-    // أزرار التحكم
-
+    // ==========================================================================
+    // متغيرات الحالة
+    // ==========================================================================
+    bool will_looping = false;
+    bool isPositionSliderDragging = false;
+    double total_time = 0.0;
+    double current_time = 0.0;
+    juce::String time_text;
+    double loop_start_point = 0.0;
+    double loop_end_point = 0.0;
 
     // ==========================================================================
-    // عناصر واجهة المستخدم
+    // عناصر واجهة المستخدم الأساسية
     // ==========================================================================
-
     juce::TextButton loadButton{ "Load File" };
     juce::TextButton playPauseButton{ "Play" };
     juce::TextButton stopButton{ "Stop" };
@@ -83,21 +82,34 @@ private:
     juce::TextButton muteButton{ "Mute" };
     juce::ToggleButton loopButton{ "Loop" };
     juce::Slider volumeSlider; // منزلق التحكم في الصوت
-    WaveformDisplay waveformDisplay; // عرض الموجة الصوتية
-    
-    juce::Slider speedSlider;        //  منزلق التحكم في السرعة
-    juce::Label speedLabel;          //  تسمية منزلق السرعة
-    juce::TextButton loop_button{ "loop" };
-    juce::Slider position_slider;
+    juce::Slider speedSlider; // منزلق التحكم في السرعة
+    juce::Label speedLabel;   // تسمية منزلق السرعة
+
+    // ==========================================================================
+    // عناصر التحكم في الموضع والتكرار
+    // ==========================================================================
+    juce::Slider positionSlider; // منزلق الموضع
+    juce::Label positionLabel; // تسمية منزلق الموضع
+    juce::Label timeLabel;    // تسمية عرض الوقت
     juce::Slider loop_slider;
-    juce::Label label_time;
-    double total_time;
-    double current_time;
-    juce::String time_text;
-    double loop_start_point;
-    double loop_end_point;
     juce::TextButton range_loop_button{ "range_loop" };
-    void loadFile(); // دالة تحميل الملف
+
+    // ==========================================================================
+    // عناصر جديدة للميزة 5: عرض البيانات الوصفية
+    // ==========================================================================
+    juce::Label metadataLabel; // لعرض البيانات الوصفية
+    juce::TextEditor metadataDisplay; // لعرض البيانات الوصفية بشكل منسق
+
+    // ==========================================================================
+    // عناصر جديدة للميزة 8: قائمة التشغيل
+    // ==========================================================================
+    juce::TextButton addToPlaylistButton{ "Add to Playlist" }; // زر إضافة للقائمة
+    juce::TextButton clearPlaylistButton{ "Clear Playlist" }; // زر مسح القائمة
+    juce::ListBox playlistBox; // صندوق القائمة
+    juce::StringArray playlistFiles; // مصفوفة أسماء الملفات في القائمة
+    std::vector<juce::File> playlistFileObjects; // متجه لحفظ كائنات الملفات
 
     std::unique_ptr<juce::FileChooser> fileChooser; // منتقي الملفات
+
+    void loadFile(); // دالة تحميل الملف
 };

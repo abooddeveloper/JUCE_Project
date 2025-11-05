@@ -4,9 +4,7 @@
 // البناء - تهيئة معالج الصوت
 // ==============================================================================
 PlayerAudio::PlayerAudio()
-    : thumbnailCache(5), //  مخزن لـ5 مصغرات
-      audioThumbnail(512, formatManager, thumbnailCache), // مصغرة صوتية
-      resampleSource(&transportSource, false) //  مصدر إعادة العينات
+    : resampleSource(&transportSource, false) // تهيئة مصدر إعادة العينات
 {
     formatManager.registerBasicFormats(); // تسجيل التنسيقات الأساسية (WAV, AIFF, etc.)
     setAudioChannels(0, 2); // إعداد قنوات الصوت (0 مدخلات، 2 مخرجات)
@@ -26,7 +24,7 @@ PlayerAudio::~PlayerAudio()
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     currentSampleRate = sampleRate; // حفظ معدل العينات
-    resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate); // [NEW] تحضير مصدر إعادة العينات
+    resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate); // تحضير مصدر إعادة العينات
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
@@ -37,9 +35,8 @@ void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
 {
     if (readerSource != nullptr && transportSource.isPlaying())
     {
-        //  استخدام مصدر إعادة العينات بدلاً من مصدر النقل مباشرة
         resampleSource.getNextAudioBlock(bufferToFill);
-        transportSource.getNextAudioBlock(bufferToFill);
+
         // معالجة التكرار التلقائي
         if (looping && !transportSource.isPlaying())
         {
@@ -59,11 +56,30 @@ void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
 void PlayerAudio::releaseResources()
 {
     transportSource.releaseResources();
+    resampleSource.releaseResources();
 }
 
+// ==============================================================================
+// ضبط وضع التكرار
+// ==============================================================================
+void PlayerAudio::setLooping(bool shouldLoop)
+{
+    looping = shouldLoop;
+    if (readerSource != nullptr)
+    {
+        readerSource->setLooping(shouldLoop);
+    }
+}
 
+bool PlayerAudio::isLooping() const
+{
+    return looping;
+}
 
-
+void PlayerAudio::toggleLoop()
+{
+    setLooping(!looping);
+}
 
 // ==============================================================================
 // كتم/إلغاء كتم الصوت
@@ -93,7 +109,6 @@ bool PlayerAudio::isMuted() const
 // ==============================================================================
 // تحميل ملف صوتي
 // ==============================================================================
-
 void PlayerAudio::loadFile(const juce::File& file)
 {
     if (file.existsAsFile())
@@ -102,33 +117,50 @@ void PlayerAudio::loadFile(const juce::File& file)
         transportSource.stop();
         transportSource.setSource(nullptr);
         readerSource.reset();
-
-
-        // محاولة فتح الملف
-        reader = formatManager.createReaderFor(file);
-        total_time = (reader->lengthInSamples / reader->sampleRate);
+        currentReader.reset();
+        metadataArray.clear();
 
         // محاولة فتح الملف وإنشاء قارئ
         auto* reader = formatManager.createReaderFor(file);
 
-
         if (reader != nullptr)
         {
+            currentReader.reset(reader);
+            total_time = (reader->lengthInSamples / reader->sampleRate);
+
+            // استخراج البيانات الوصفية
+            metadataArray = reader->metadataValues;
+
+            // إضافة المعلومات الأساسية
+            if (metadataArray.getValue("Title", "").isEmpty())
+            {
+                metadataArray.set("Title", file.getFileNameWithoutExtension());
+            }
+
+            if (metadataArray.getValue("Artist", "").isEmpty())
+            {
+                metadataArray.set("Artist", "Unknown Artist");
+            }
+
+            if (metadataArray.getValue("Album", "").isEmpty())
+            {
+                metadataArray.set("Album", "Unknown Album");
+            }
+
+            // إضافة معلومات الملف الأساسية
+            metadataArray.set("File Name", file.getFileName());
+            metadataArray.set("File Size", juce::String(file.getSize() / 1024) + " KB");
+            metadataArray.set("File Path", file.getFullPathName());
+
+            // إضافة معلومات الصوت التقنية
+            metadataArray.set("Sample Rate", juce::String(reader->sampleRate) + " Hz");
+            metadataArray.set("Bit Depth", juce::String(reader->bitsPerSample) + " bit");
+            metadataArray.set("Channels", juce::String(reader->numChannels));
+            metadataArray.set("Length (seconds)", juce::String(reader->lengthInSamples / reader->sampleRate, 2));
+
             // إنشاء مصدر الصوت من القارئ
             readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
             readerSource->setLooping(looping);
-            //  توصيل مصدر القارئ بمصدر النقل
-            transportSource.setSource(readerSource.get(), 0, nullptr, reader->sampleRate);
-
-            //  إنشاء المصغرة الصوتية للموجة
-            createAudioThumbnail();
-
-            transportSource.setPosition(0.0);
-            currentFileName = file.getFileName();
-            playing = false;
-
-            // إعادة تعيين السرعة إلى الوضع الطبيعي عند تحميل ملف جديد
-            setPlaybackSpeed(1.0f);
 
             // توصيل المصدر بمصدر النقل
             transportSource.setSource(readerSource.get(),
@@ -151,25 +183,9 @@ void PlayerAudio::loadFile(const juce::File& file)
     }
 }
 
-bool PlayerAudio::label_time_visibility() {
-    if (isFileLoaded()) {
-        return true;
-    }
-    else { return false; }
-}
-void PlayerAudio::set_loop_by_buttons(double start_point, double end_point) {
-    start_position_time = start_point * total_time;
-    end_position_time = end_point * total_time;
-}
-bool PlayerAudio::loop_position_state() {
-    if (transportSource.getCurrentPosition() >= end_position_time) {
-        return true;
-    }
-    else { return false; }
-}
-void  PlayerAudio::set_slider_looping() {
-    transportSource.setPosition(start_position_time);
-}
+// ==============================================================================
+// دوال التحكم في السرعة
+// ==============================================================================
 void PlayerAudio::setPlaybackSpeed(float speed)
 {
     playbackSpeed = juce::jlimit(0.25f, 4.0f, speed); // تحديد السرعة بين 0.25x و4x
@@ -178,10 +194,14 @@ void PlayerAudio::setPlaybackSpeed(float speed)
     resampleSource.setResamplingRatio(playbackSpeed);
 }
 
+float PlayerAudio::getPlaybackSpeed() const
+{
+    return playbackSpeed;
+}
+
 // ==============================================================================
 // دوال التحكم في التشغيل
 // ==============================================================================
-
 void PlayerAudio::play()
 {
     if (readerSource != nullptr)
@@ -190,37 +210,7 @@ void PlayerAudio::play()
         playing = true;
     }
 }
-bool PlayerAudio::is_transportSource_playing() {
-    return(!transportSource.isPlaying());
-}
-void PlayerAudio::loop_on() {
-    /*readerSource->setLooping(true);*/
-    if (!transportSource.isPlaying()) {
-        transportSource.setPosition(0.0);
-        transportSource.start();
-    }
-}
-void PlayerAudio::position_slider_value(double slider_value) {
-    double new_position = slider_value * total_time;
-    transportSource.setPosition(new_position);
-}
-double PlayerAudio::get_total_time() {
-    return total_time;
-}
-double PlayerAudio::get_current_time() {
-    current_time = transportSource.getCurrentPosition();
-    return current_time;
-}
-void PlayerAudio::createAudioThumbnail()
-{
-    // سيتم استدعاء هذه الدالة عند تحميل ملف جديد
-    if (reader != nullptr)
-    {
-        audioThumbnail.clear();
-        //  تحميل المصغرة من القارئ
-        audioThumbnail.setSource(new juce::FileInputSource(juce::File(currentFileName)));
-    }
-}
+
 void PlayerAudio::pause()
 {
     transportSource.stop();
@@ -272,6 +262,49 @@ void PlayerAudio::setPosition(double position)
 }
 
 // ==============================================================================
+// دوال التكرار المتقدم
+// ==============================================================================
+void PlayerAudio::loop_on()
+{
+    if (!transportSource.isPlaying()) {
+        transportSource.setPosition(0.0);
+        transportSource.start();
+    }
+}
+
+void PlayerAudio::position_slider_value(double slider_value)
+{
+    double new_position = slider_value * total_time;
+    transportSource.setPosition(new_position);
+}
+
+void PlayerAudio::set_loop_by_buttons(double start_point, double end_point)
+{
+    start_position_time = start_point * total_time;
+    end_position_time = end_point * total_time;
+}
+
+bool PlayerAudio::loop_position_state()
+{
+    if (transportSource.getCurrentPosition() >= end_position_time) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+void PlayerAudio::set_slider_looping()
+{
+    transportSource.setPosition(start_position_time);
+}
+
+bool PlayerAudio::is_transportSource_playing()
+{
+    return (!transportSource.isPlaying());
+}
+
+// ==============================================================================
 // دوال الاستعلام عن الحالة
 // ==============================================================================
 bool PlayerAudio::isPlaying() const
@@ -300,13 +333,67 @@ double PlayerAudio::getTotalLength() const
         return readerSource->getTotalLength() / readerSource->getAudioFormatReader()->sampleRate;
     return 0.0;
 }
-float PlayerAudio::getPlaybackSpeed() const
+
+bool PlayerAudio::label_time_visibility()
 {
-    return playbackSpeed;
+    if (isFileLoaded()) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
-juce::AudioThumbnail& PlayerAudio::getAudioThumbnail()
+
+double PlayerAudio::get_total_time()
 {
-    return audioThumbnail;
+    return total_time;
+}
+
+double PlayerAudio::get_current_time()
+{
+    current_time = transportSource.getCurrentPosition();
+    return current_time;
+}
+
+// ==============================================================================
+// دوال جديدة للميزة 5: البيانات الوصفية
+// ==============================================================================
+juce::String PlayerAudio::getCurrentFileName() const
+{
+    return currentFileName;
+}
+
+juce::StringArray PlayerAudio::getMetadata() const
+{
+    juce::StringArray metadataList;
+
+    metadataList.add("File: " + currentFileName);
+
+    if (isFileLoaded()) {
+        metadataList.add("Duration: " + getFormattedDuration());
+    }
+
+    auto allKeys = metadataArray.getAllKeys();
+    for (auto& key : allKeys) {
+        juce::String value = metadataArray.getValue(key, "");
+        if (value.isNotEmpty()) {
+            metadataList.add(key + ": " + value);
+        }
+    }
+
+    return metadataList;
+}
+
+juce::String PlayerAudio::getFormattedDuration() const
+{
+    if (!isFileLoaded())
+        return "00:00";
+
+    double totalSeconds = getTotalLength();
+    int minutes = static_cast<int>(totalSeconds) / 60;
+    int seconds = static_cast<int>(totalSeconds) % 60;
+
+    return juce::String::formatted("%02d:%02d", minutes, seconds);
 }
 
 // ==============================================================================
@@ -321,6 +408,13 @@ juce::String PlayerAudio::getDebugInfo() const
     info += "Position: " + juce::String(getCurrentPosition()) + "\n";
     info += "Muted: " + juce::String(isMuted() ? "Yes" : "No") + "\n";
     info += "Looping: " + juce::String(isLooping() ? "ON" : "OFF") + "\n";
+    info += "Speed: " + juce::String(getPlaybackSpeed()) + "x\n";
+
+    auto metadata = getMetadata();
+    for (auto& line : metadata)
+    {
+        info += line + "\n";
+    }
 
     return info;
 }

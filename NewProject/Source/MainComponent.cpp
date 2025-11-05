@@ -1,4 +1,4 @@
-#include "MainComponent.h"
+﻿#include "MainComponent.h"
 
 // ==============================================================================
 // البناء - تهيئة المكون الرئيسي
@@ -8,7 +8,7 @@ MainComponent::MainComponent()
     guiComponent(audioPlayer)
 {
     addAndMakeVisible(guiComponent); // إضافة واجهة المستخدم وجعلها مرئية
-    setSize(600, 350); // تحديد حجم المكون
+    setSize(800, 600); // تحديد حجم المكون
 
     // بدء المؤقت للتحديثات الدورية (حوالي 30 إطار في الثانية)
     startTimer(33);
@@ -37,10 +37,16 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate
 // ==============================================================================
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    // الحصول على كتلة الصوت التالية من المعالج
-    audioPlayer.getNextAudioBlock(bufferToFill);
+    // تحقق من أن bufferToFill صالح
+    if (bufferToFill.buffer != nullptr && bufferToFill.numSamples > 0)
+    {
+        audioPlayer.getNextAudioBlock(bufferToFill);
+    }
+    else
+    {
+        bufferToFill.clearActiveBufferRegion();
+    }
 }
-
 // ==============================================================================
 // تحرير موارد الصوت
 // ==============================================================================
@@ -56,17 +62,62 @@ void MainComponent::releaseResources()
 void MainComponent::timerCallback()
 {
     static int counter = 0;
-    if (counter++ % 100 == 0) // كل 3 ثوان تقريباً (100 * 33ms ≈ 3.3s)
+
+    // تحديث معلومات التصحيح كل 3 ثوان تقريباً (100 * 33ms ≈ 3.3s)
+    if (counter++ % 100 == 0)
     {
-        if (audioPlayer.isPlaying())
+        // معلومات حالة التشغيل الأساسية
+        if (audioPlayer.isFileLoaded())
         {
-            // طباعة معلومات التصحيح أثناء التشغيل (باستخدام أحرف ASCII فقط)
-            DBG("Audio is PLAYING - Position: " +
-                juce::String(audioPlayer.getCurrentPosition(), 2) +
-                " | Looping: " + juce::String(audioPlayer.isLooping() ? "ON" : "OFF"));
+            if (audioPlayer.isPlaying())
+            {
+                DBG("=== AUDIO PLAYER STATUS ===");
+                DBG("State: PLAYING");
+                DBG("Position: " + juce::String(audioPlayer.getCurrentPosition(), 2) + "s");
+                DBG("Total Length: " + juce::String(audioPlayer.getTotalLength(), 2) + "s");
+                DBG("Looping: " + juce::String(audioPlayer.isLooping() ? "ON" : "OFF"));
+                DBG("Speed: " + juce::String(audioPlayer.getPlaybackSpeed()) + "x");
+                DBG("Muted: " + juce::String(audioPlayer.isMuted() ? "YES" : "NO"));
+                DBG("Volume: " + juce::String(audioPlayer.getGain(), 2));
+
+                // معلومات التقدم
+                double progress = (audioPlayer.getTotalLength() > 0.0) ?
+                    (audioPlayer.getCurrentPosition() / audioPlayer.getTotalLength()) * 100.0 : 0.0;
+                DBG("Progress: " + juce::String(progress, 1) + "%");
+                DBG("=============================");
+            }
+            else if (audioPlayer.isPaused())
+            {
+                DBG("=== AUDIO PLAYER STATUS ===");
+                DBG("State: PAUSED");
+                DBG("Position: " + juce::String(audioPlayer.getCurrentPosition(), 2) + "s");
+                DBG("File: " + audioPlayer.getCurrentFileName());
+                DBG("=============================");
+            }
+        }
+        else
+        {
+            DBG("=== AUDIO PLAYER STATUS ===");
+            DBG("State: NO FILE LOADED");
+            DBG("Ready for file loading...");
+            DBG("=============================");
+        }
+
+        // تحقق من سلامة الذاكرة (للاكتشاف المبكر للمشاكل)
+        if (counter % 300 == 0) // كل 10 ثوان تقريباً
+        {
+            DBG("*** MEMORY CHECK ***");
+            DBG("Reader Source: " + juce::String(audioPlayer.isFileLoaded() ? "VALID" : "NULL"));
+            DBG("Transport Source Active: " + juce::String(audioPlayer.isTransportSourceActive() ? "YES" : "NO"));
+            DBG("********************");
         }
     }
+
+   
+   
 }
+
+//
 
 // ==============================================================================
 // الرسم - رسم خلفية المكون

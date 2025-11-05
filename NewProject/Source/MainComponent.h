@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <JuceHeader.h>
 #include "Player_GUI.h"
 #include "Player_Audio.h"
@@ -34,6 +34,4 @@ public:
 private:
     PlayerAudio audioPlayer;      // معالج الصوت
     PlayerGUI guiComponent;       // واجهة المستخدم
-    //  زيادة حجم النافذة لاستيعاب الميزات الجديد
-    juce::Rectangle<int> originalSize{ 600, 350 }; // كان 600, 200
 };
