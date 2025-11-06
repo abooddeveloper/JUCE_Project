@@ -29,8 +29,7 @@ public:
     void setGain(float gain); // ضبط مستوى الصوت
     void setPosition(double position); // ضبط موضع التشغيل
     void toggleMute(); // كتم/إلغاء كتم الصوت
-    void setLooping(bool shouldLoop); // ضبط وضع التكرار
-    void toggleLoop(); // تبديل وضع التكرار
+    
 
     // دوال التحكم في السرعة
     void setPlaybackSpeed(float speed); // ضبط سرعة التشغيل
@@ -49,7 +48,7 @@ public:
     bool isPlaying() const;     // هل يتم التشغيل حالياً؟
     bool isPaused() const;      // هل متوقف مؤقتاً؟
     bool isFileLoaded() const;  // هل هناك ملف محمل؟
-    bool isLooping() const;     // هل التكرار مفعل؟
+    
     bool isMuted() const;       // هل الصوت مكتوم؟
     double getCurrentPosition() const; // الموضع الحالي
     double getTotalLength() const;// الطول الكلي للملف
@@ -80,7 +79,7 @@ private:
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource; // مصدر القارئ
     juce::AudioTransportSource transportSource;    // مصدر النقل للتحكم في التشغيل
     juce::ResamplingAudioSource resampleSource{ &transportSource, false }; // مصدر إعادة العينات للتحكم في السرعة
-
+    juce::AudioFormatReader* reader;
     // متغيرات حالة التشغيل
     double currentSampleRate = 44100.0; // معدل العينات الحالي
     float playbackSpeed = 1.0f; // سرعة التشغيل الحالية (1.0 = سرعة عادية)
@@ -92,7 +91,7 @@ private:
     float volumeBeforeMute = 0.5f; // مستوى الصوت قبل الكتم
 
     // متغيرات التكرار المتقدم
-    juce::AudioFormatReader* reader;
+   
     double current_time;
     double total_time;
     juce::String time_text;
@@ -103,6 +102,6 @@ private:
     // ==========================================================================
     // متغيرات جديدة للميزة 5: البيانات الوصفية
     // ==========================================================================
-    std::unique_ptr<juce::AudioFormatReader> currentReader; // قارئ الملف الحالي
+    
     juce::StringPairArray metadataArray; // مصفوفة أزواج نصية لتخزين البيانات الوصفية
 };

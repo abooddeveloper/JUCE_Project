@@ -11,16 +11,15 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioProcessor)
     // ==========================================================================
     // إعداد الأزرار وإضافة المستمعين للأحداث
     // ==========================================================================
-    for (auto* btn : { &loadButton, &playPauseButton, &stopButton, &restartButton, &muteButton })
+    for (auto* btn : { &loadButton, &playPauseButton, &stopButton, &restartButton, &muteButton,&loop_button,&range_loop_button })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
     }
 
     // إعداد زر التكرار
-    loopButton.setClickingTogglesState(true);
-    loopButton.addListener(this);
-    addAndMakeVisible(loopButton);
+    loop_button.setClickingTogglesState(true);
+    addAndMakeVisible(loop_button);
 
     // إعداد أزرار التكرار الإضافية
     range_loop_button.setClickingTogglesState(true);
@@ -51,30 +50,22 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioProcessor)
 
     // إعداد منزلق الموضع
     // ==========================================================================
-    positionSlider.setRange(0.0, 1.0, 0.001);
-    positionSlider.setValue(0.0);
-    positionSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    positionSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    positionSlider.addListener(this);
+    position_slider.setRange(0.0, 1.0, 0.001);
+    position_slider.setValue(0.0);
+    position_slider.setSliderStyle(juce::Slider::LinearHorizontal);
+    position_slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    position_slider.addListener(this);
+    addAndMakeVisible(position_slider);
 
-    positionSlider.onDragStart = [this]() {
-        isPositionSliderDragging = true; // بدأ المستخدم في السحب
-        };
-
-    positionSlider.onDragEnd = [this]() {
-        isPositionSliderDragging = false; // انتهى السحب
-        };
-    addAndMakeVisible(positionSlider);
-
-    positionLabel.setText("Position:", juce::dontSendNotification);
+    /*positionLabel.setText("Position:", juce::dontSendNotification);
     positionLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     positionLabel.setJustificationType(juce::Justification::centredRight);
-    addAndMakeVisible(positionLabel);
-
-    timeLabel.setText("0:00 / 0:00", juce::dontSendNotification);
-    timeLabel.setColour(juce::Label::textColourId, juce::Colours::lightgreen);
-    timeLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(timeLabel);
+    addAndMakeVisible(positionLabel);*/
+    addAndMakeVisible(label_time);
+    label_time.setText("0:00 / 0:00", juce::dontSendNotification);
+    label_time.setColour(juce::Label::textColourId, juce::Colours::white);
+    label_time.setJustificationType(juce::Justification::centredRight);
+    label_time.setVisible(audioPlayer.label_time_visibility());
 
     // إعداد منزلق التكرار
     loop_slider.setSliderStyle(juce::Slider::TwoValueHorizontal);
@@ -82,8 +73,9 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioProcessor)
     loop_slider.setRange(0.0, 1.0, 0.01);
     loop_slider.setMinAndMaxValues(0.1, 0.6);
     loop_slider.addListener(this);
-    loop_slider.setVisible(false);
     addAndMakeVisible(loop_slider);
+    loop_slider.setVisible(false);
+   
 
     // ==========================================================================
     // إعداد عناصر البيانات الوصفية
@@ -119,7 +111,6 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioProcessor)
     // تحديث الحالات الأولية للأزرار
     // ==========================================================================
     updatePlayButton();
-    updateLoopButton();
     updateMuteButton();
     updateMetadataDisplay();
 }
@@ -166,7 +157,7 @@ void PlayerGUI::resized()
     playPauseButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
     stopButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
     restartButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
-    loopButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
+    loop_button.setBounds(buttonRow.removeFromLeft(80).reduced(2));
     range_loop_button.setBounds(buttonRow.removeFromLeft(100).reduced(2));
     muteButton.setBounds(buttonRow.removeFromLeft(80).reduced(2));
 
@@ -180,18 +171,15 @@ void PlayerGUI::resized()
     speedLabel.setBounds(speedArea.removeFromLeft(60));
     speedSlider.setBounds(speedArea);
 
-    // منطقة الموضع والوقت
-    auto positionTimeArea = area.removeFromTop(40).reduced(20, 5);
-    positionLabel.setBounds(positionTimeArea.removeFromLeft(60));
-    timeLabel.setBounds(positionTimeArea.removeFromRight(100));
-    positionSlider.setBounds(positionTimeArea);
-
-    // منطقة منزلق التكرار
-    auto loopSliderArea = area.removeFromTop(30).reduced(20, 5);
-    loop_slider.setBounds(loopSliderArea);
-
+    
+    
     // وضع منزلق الصوت في المنطقة المتبقية
     volumeSlider.setBounds(area.removeFromTop(30).reduced(20, 5));
+
+    auto slider_area = area.removeFromTop(30).reduced(20, 5);
+    loop_slider.setBounds(slider_area);
+    position_slider.setBounds(slider_area);
+    label_time.setBounds(area.removeFromTop(25).reduced(20, 0));
 
     // منطقة البيانات الوصفية
     auto metadataArea = area.removeFromBottom(100);
@@ -224,7 +212,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 {
                     audioPlayer.loadFile(file);
                     updatePlayButton();
-                    updateLoopButton();
+                    
                     updateMetadataDisplay();
                 }
             });
@@ -244,11 +232,16 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         audioPlayer.restart();
         updatePlayButton();
     }
-    else if (button == &loopButton)
+    else if (button == &loop_button)
     {
-        audioPlayer.toggleLoop();
-        updateLoopButton();
-        DBG("Looping: " + juce::String(audioPlayer.isLooping() ? "ON" : "OFF"));
+        will_looping = loop_button.getToggleState();
+        if (will_looping) {
+            loop_button.setButtonText("Loop:on");
+            audioPlayer.loop_on();
+        }
+        else {
+            loop_button.setButtonText("Loop:off");
+        }
     }
     else if (button == &range_loop_button)
     {
@@ -307,45 +300,18 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 // ==============================================================================
 void PlayerGUI::timerCallback()
 {
-    // تحديث تسمية الوقت
-    if (audioPlayer.isFileLoaded())
-    {
-        double currentTime = audioPlayer.getCurrentPosition();
-        double totalTime = audioPlayer.getTotalLength();
-
-        // تحويل الوقت إلى دقائق وثواني
-        auto formatTime = [](double time) -> juce::String {
-            int minutes = static_cast<int>(time) / 60;
-            int seconds = static_cast<int>(time) % 60;
-            return juce::String(minutes) + ":" + (seconds < 10 ? "0" : "") + juce::String(seconds);
-            };
-
-        timeLabel.setText(formatTime(currentTime) + " / " + formatTime(totalTime),
-            juce::dontSendNotification);
-
-        // تحديث منزلق الموضع
-        if (totalTime > 0.0 && !isPositionSliderDragging)
-        {
-            double position = currentTime / totalTime;
-            positionSlider.setValue(position, juce::dontSendNotification);
-        }
-
-        // تحديث التكرار المدى
-        if (range_loop_button.getToggleState() && audioPlayer.loop_position_state()) {
-            audioPlayer.set_slider_looping();
-        }
+    label_time.setVisible(audioPlayer.label_time_visibility());
+    current_time = audioPlayer.get_current_time();
+    total_time = audioPlayer.get_total_time();
+    time_text = time_in_minutes(current_time) + ":" + time_in_seconds(current_time) + " / " + time_in_minutes(total_time) + ":" + time_in_seconds(total_time);
+    label_time.setText(time_text, juce::dontSendNotification);
+    position_slider.setValue(current_time / total_time, juce::dontSendNotification);
+    if (range_loop_button.getToggleState() && audioPlayer.loop_position_state()) {
+        audioPlayer.set_slider_looping();
     }
-    else
-    {
-        timeLabel.setText("0:00 / 0:00", juce::dontSendNotification);
-        if (!isPositionSliderDragging) // لا نحدث المنزلق إذا كان المستخدم يسحبه
-        {
-            positionSlider.setValue(0.0, juce::dontSendNotification);
-        }
+    if (will_looping && audioPlayer.is_transportSource_playing()) {
+        audioPlayer.loop_on();
     }
-
-    // إعادة الرسم لتحديث شريط التقدم
-    repaint();
 }
 
 // ==============================================================================
@@ -363,12 +329,10 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
         audioPlayer.setPlaybackSpeed((float)slider->getValue());
     }
     // معالجة تغيير الموضع
-    else if (slider == &positionSlider)
+    else if (slider == &position_slider)
     {
-        if (audioPlayer.isFileLoaded() && isPositionSliderDragging)
-        {
-            double newPosition = slider->getValue() * audioPlayer.getTotalLength();
-            audioPlayer.setPosition(newPosition);
+        if (audioPlayer.isFileLoaded()) {
+            audioPlayer.position_slider_value(position_slider.getValue());
         }
     }
     // معالجة تغيير نطاق التكرار
@@ -416,21 +380,6 @@ void PlayerGUI::updatePlayButton()
     }
 }
 
-// ==============================================================================
-// تحديث حالة زر التكرار
-// ==============================================================================
-void PlayerGUI::updateLoopButton()
-{
-    if (audioPlayer.isLooping()) {
-        loopButton.setButtonText("Loop: ON");
-        loopButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::green);
-    }
-    else {
-        loopButton.setButtonText("Loop: OFF");
-        loopButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::red);
-    }
-    loopButton.setEnabled(audioPlayer.isFileLoaded());
-}
 
 // ==============================================================================
 // تحديث حالة زر الكتم
@@ -443,7 +392,7 @@ void PlayerGUI::updateMuteButton()
     }
     else {
         muteButton.setButtonText("Mute");
-        muteButton.setColour(juce::TextButton::buttonColourId, juce::Colours::grey);
+        muteButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentWhite);
     }
 }
 
@@ -505,7 +454,7 @@ void PlayerGUI::selectedRowsChanged(int lastRowSelected)
     if (lastRowSelected >= 0 && lastRowSelected < playlistFileObjects.size()) {
         audioPlayer.loadFile(playlistFileObjects[lastRowSelected]);
         updatePlayButton();
-        updateLoopButton();
+        
         updateMetadataDisplay();
     }
 }

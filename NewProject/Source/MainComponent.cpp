@@ -75,7 +75,7 @@ void MainComponent::timerCallback()
                 DBG("State: PLAYING");
                 DBG("Position: " + juce::String(audioPlayer.getCurrentPosition(), 2) + "s");
                 DBG("Total Length: " + juce::String(audioPlayer.getTotalLength(), 2) + "s");
-                DBG("Looping: " + juce::String(audioPlayer.isLooping() ? "ON" : "OFF"));
+                
                 DBG("Speed: " + juce::String(audioPlayer.getPlaybackSpeed()) + "x");
                 DBG("Muted: " + juce::String(audioPlayer.isMuted() ? "YES" : "NO"));
                 DBG("Volume: " + juce::String(audioPlayer.getGain(), 2));

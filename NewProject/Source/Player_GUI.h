@@ -42,7 +42,7 @@ public:
     // دوال تحديث الواجهة
     // ==========================================================================
     void updatePlayButton(); // تحديث حالة زر التشغيل
-    void updateLoopButton(); // تحديث حالة زر التكرار
+    
     void updateMuteButton(); // تحديث حالة زر الكتم
     void updateMetadataDisplay(); // تحديث عرض البيانات الوصفية (الميزة 5)
 
@@ -66,11 +66,11 @@ private:
     // ==========================================================================
     bool will_looping = false;
     bool isPositionSliderDragging = false;
-    double total_time = 0.0;
-    double current_time = 0.0;
+    double total_time ;
+    double current_time ;
     juce::String time_text;
-    double loop_start_point = 0.0;
-    double loop_end_point = 0.0;
+    double loop_start_point;
+    double loop_end_point ;
 
     // ==========================================================================
     // عناصر واجهة المستخدم الأساسية
@@ -80,7 +80,7 @@ private:
     juce::TextButton stopButton{ "Stop" };
     juce::TextButton restartButton{ "Restart" };
     juce::TextButton muteButton{ "Mute" };
-    juce::ToggleButton loopButton{ "Loop" };
+    juce::TextButton loop_button{ "loop" };
     juce::Slider volumeSlider; // منزلق التحكم في الصوت
     juce::Slider speedSlider; // منزلق التحكم في السرعة
     juce::Label speedLabel;   // تسمية منزلق السرعة
@@ -88,9 +88,9 @@ private:
     // ==========================================================================
     // عناصر التحكم في الموضع والتكرار
     // ==========================================================================
-    juce::Slider positionSlider; // منزلق الموضع
+    juce::Slider position_slider; // منزلق الموضع
     juce::Label positionLabel; // تسمية منزلق الموضع
-    juce::Label timeLabel;    // تسمية عرض الوقت
+    juce::Label label_time;    // تسمية عرض الوقت
     juce::Slider loop_slider;
     juce::TextButton range_loop_button{ "range_loop" };
 

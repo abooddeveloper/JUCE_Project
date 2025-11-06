@@ -59,27 +59,7 @@ void PlayerAudio::releaseResources()
     resampleSource.releaseResources();
 }
 
-// ==============================================================================
-// ضبط وضع التكرار
-// ==============================================================================
-void PlayerAudio::setLooping(bool shouldLoop)
-{
-    looping = shouldLoop;
-    if (readerSource != nullptr)
-    {
-        readerSource->setLooping(shouldLoop);
-    }
-}
 
-bool PlayerAudio::isLooping() const
-{
-    return looping;
-}
-
-void PlayerAudio::toggleLoop()
-{
-    setLooping(!looping);
-}
 
 // ==============================================================================
 // كتم/إلغاء كتم الصوت
@@ -117,16 +97,16 @@ void PlayerAudio::loadFile(const juce::File& file)
         transportSource.stop();
         transportSource.setSource(nullptr);
         readerSource.reset();
-        currentReader.reset();
+        
         metadataArray.clear();
 
         // محاولة فتح الملف وإنشاء قارئ
-        auto* reader = formatManager.createReaderFor(file);
-
+         reader = formatManager.createReaderFor(file);
+         total_time = (reader->lengthInSamples / reader->sampleRate);
         if (reader != nullptr)
         {
-            currentReader.reset(reader);
-            total_time = (reader->lengthInSamples / reader->sampleRate);
+            
+           
 
             // استخراج البيانات الوصفية
             metadataArray = reader->metadataValues;
@@ -301,7 +281,7 @@ void PlayerAudio::set_slider_looping()
 
 bool PlayerAudio::is_transportSource_playing()
 {
-    return (!transportSource.isPlaying());
+    return(transportSource.getCurrentPosition() >= total_time ? true : false);
 }
 
 // ==============================================================================
@@ -407,7 +387,7 @@ juce::String PlayerAudio::getDebugInfo() const
     info += "Playing: " + juce::String(isPlaying() ? "Yes" : "No") + "\n";
     info += "Position: " + juce::String(getCurrentPosition()) + "\n";
     info += "Muted: " + juce::String(isMuted() ? "Yes" : "No") + "\n";
-    info += "Looping: " + juce::String(isLooping() ? "ON" : "OFF") + "\n";
+    
     info += "Speed: " + juce::String(getPlaybackSpeed()) + "x\n";
 
     auto metadata = getMetadata();
