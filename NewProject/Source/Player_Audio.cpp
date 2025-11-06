@@ -1,80 +1,51 @@
 ﻿#include "Player_Audio.h"
 
-// ==============================================================================
-// البناء - تهيئة معالج الصوت
-// ==============================================================================
 PlayerAudio::PlayerAudio()
-    : resampleSource(&transportSource, false) // تهيئة مصدر إعادة العينات
+    : resampleSource(&transportSource, false)
 {
-    formatManager.registerBasicFormats(); // تسجيل التنسيقات الأساسية (WAV, AIFF, etc.)
-    setAudioChannels(0, 2); // إعداد قنوات الصوت (0 مدخلات، 2 مخرجات)
+    formatManager.registerBasicFormats();
+    setAudioChannels(0, 2);
 }
 
-// ==============================================================================
-// التدمير - تنظيف الموارد
-// ==============================================================================
 PlayerAudio::~PlayerAudio()
 {
-    shutdownAudio(); // إيقاف نظام الصوت
+    shutdownAudio();
 }
 
-// ==============================================================================
-// تحضير الصوت للتشغيل
-// ==============================================================================
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
-    currentSampleRate = sampleRate; // حفظ معدل العينات
-    resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate); // تحضير مصدر إعادة العينات
+    currentSampleRate = sampleRate;
+    resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
-// ==============================================================================
-// الحصول على كتلة الصوت التالية
-// ==============================================================================
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (readerSource != nullptr && transportSource.isPlaying())
+    if (readerSource != nullptr)
     {
         resampleSource.getNextAudioBlock(bufferToFill);
-
-        // معالجة التكرار التلقائي
-        if (looping && !transportSource.isPlaying())
-        {
-            transportSource.setPosition(0.0);
-            transportSource.start();
-        }
     }
     else
     {
-        bufferToFill.clearActiveBufferRegion(); // ملء المخزن بالصمت
+        bufferToFill.clearActiveBufferRegion();
     }
 }
 
-// ==============================================================================
-// تحرير موارد الصوت
-// ==============================================================================
 void PlayerAudio::releaseResources()
 {
     transportSource.releaseResources();
     resampleSource.releaseResources();
 }
 
-
-
-// ==============================================================================
-// كتم/إلغاء كتم الصوت
-// ==============================================================================
 void PlayerAudio::toggleMute()
 {
     if (isMutedFlag)
     {
-        // إلغاء الكتم - استعادة مستوى الصوت السابق
         setGain(volumeBeforeMute);
         isMutedFlag = false;
     }
     else
     {
-        // كتم الصوت - حفظ المستوى الحالي وتعيينه إلى صفر
         volumeBeforeMute = transportSource.getGain();
         setGain(0.0f);
         isMutedFlag = true;
@@ -86,32 +57,24 @@ bool PlayerAudio::isMuted() const
     return isMutedFlag;
 }
 
-// ==============================================================================
-// تحميل ملف صوتي
-// ==============================================================================
 void PlayerAudio::loadFile(const juce::File& file)
 {
     if (file.existsAsFile())
     {
-        // إيقاف الصوت أولاً وتنظيف المصدر الحالي
         transportSource.stop();
         transportSource.setSource(nullptr);
         readerSource.reset();
-        
         metadataArray.clear();
+        waveformData.clear();
 
-        // محاولة فتح الملف وإنشاء قارئ
-         reader = formatManager.createReaderFor(file);
-         total_time = (reader->lengthInSamples / reader->sampleRate);
+        auto* reader = formatManager.createReaderFor(file);
+
         if (reader != nullptr)
         {
-            
-           
+            total_time = (reader->lengthInSamples / reader->sampleRate);
 
-            // استخراج البيانات الوصفية
             metadataArray = reader->metadataValues;
 
-            // إضافة المعلومات الأساسية
             if (metadataArray.getValue("Title", "").isEmpty())
             {
                 metadataArray.set("Title", file.getFileNameWithoutExtension());
@@ -127,50 +90,89 @@ void PlayerAudio::loadFile(const juce::File& file)
                 metadataArray.set("Album", "Unknown Album");
             }
 
-            // إضافة معلومات الملف الأساسية
             metadataArray.set("File Name", file.getFileName());
             metadataArray.set("File Size", juce::String(file.getSize() / 1024) + " KB");
             metadataArray.set("File Path", file.getFullPathName());
-
-            // إضافة معلومات الصوت التقنية
             metadataArray.set("Sample Rate", juce::String(reader->sampleRate) + " Hz");
             metadataArray.set("Bit Depth", juce::String(reader->bitsPerSample) + " bit");
             metadataArray.set("Channels", juce::String(reader->numChannels));
             metadataArray.set("Length (seconds)", juce::String(reader->lengthInSamples / reader->sampleRate, 2));
 
-            // إنشاء مصدر الصوت من القارئ
-            readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
-            readerSource->setLooping(looping);
+            // توليد بيانات الرسم البياني
+            generateWaveformData(file);
 
-            // توصيل المصدر بمصدر النقل
+            readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+
             transportSource.setSource(readerSource.get(),
-                0, // timeout
-                nullptr, // thread
+                0,
+                nullptr,
                 reader->sampleRate);
 
-            // إعادة التعيين وبدء التشغيل
             transportSource.setPosition(0.0);
             currentFileName = file.getFileName();
             playing = false;
 
-            // تشغيل تلقائي بعد التحميل
             play();
         }
         else
         {
-            currentFileName = ""; // فشل التحميل
+            currentFileName = "";
         }
     }
 }
 
-// ==============================================================================
-// دوال التحكم في السرعة
-// ==============================================================================
+void PlayerAudio::generateWaveformData(const juce::File& file)
+{
+    waveformData.clear();
+
+    if (!file.existsAsFile())
+        return;
+
+    auto reader = std::unique_ptr<juce::AudioFormatReader>(formatManager.createReaderFor(file));
+    if (reader == nullptr)
+        return;
+
+    const int numSamples = static_cast<int>(reader->lengthInSamples);
+    const int numChannels = reader->numChannels;
+    waveformSamples = 1000;
+
+    if (numSamples == 0)
+        return;
+
+    waveformData.resize(waveformSamples, 0.0f);
+
+    // قراءة البيانات الصوتية
+    juce::AudioSampleBuffer buffer(numChannels, numSamples);
+    reader->read(&buffer, 0, numSamples, 0, true, true);
+
+    // حساب متوسط القيم للرسم البياني
+    const int step = numSamples / waveformSamples;
+
+    for (int i = 0; i < waveformSamples; ++i)
+    {
+        float maxValue = 0.0f;
+        int startSample = i * step;
+        int endSample = juce::jmin(startSample + step, numSamples);
+
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
+            const float* channelData = buffer.getReadPointer(channel);
+
+            for (int j = startSample; j < endSample; ++j)
+            {
+                float absValue = std::abs(channelData[j]);
+                if (absValue > maxValue)
+                    maxValue = absValue;
+            }
+        }
+
+        waveformData[i] = maxValue;
+    }
+}
+
 void PlayerAudio::setPlaybackSpeed(float speed)
 {
-    playbackSpeed = juce::jlimit(0.25f, 4.0f, speed); // تحديد السرعة بين 0.25x و4x
-
-    // ضبط نسبة إعادة العينة بناءً على السرعة
+    playbackSpeed = juce::jlimit(0.25f, 4.0f, speed);
     resampleSource.setResamplingRatio(playbackSpeed);
 }
 
@@ -179,9 +181,6 @@ float PlayerAudio::getPlaybackSpeed() const
     return playbackSpeed;
 }
 
-// ==============================================================================
-// دوال التحكم في التشغيل
-// ==============================================================================
 void PlayerAudio::play()
 {
     if (readerSource != nullptr)
@@ -224,26 +223,17 @@ void PlayerAudio::togglePlayPause()
     }
 }
 
-// ==============================================================================
-// ضبط مستوى الصوت
-// ==============================================================================
 void PlayerAudio::setGain(float gain)
 {
     currentVolume = gain;
     transportSource.setGain(gain);
 }
 
-// ==============================================================================
-// ضبط موضع التشغيل
-// ==============================================================================
 void PlayerAudio::setPosition(double position)
 {
     transportSource.setPosition(position);
 }
 
-// ==============================================================================
-// دوال التكرار المتقدم
-// ==============================================================================
 void PlayerAudio::loop_on()
 {
     if (!transportSource.isPlaying()) {
@@ -281,12 +271,9 @@ void PlayerAudio::set_slider_looping()
 
 bool PlayerAudio::is_transportSource_playing()
 {
-    return(transportSource.getCurrentPosition() >= total_time ? true : false);
+    return (!transportSource.isPlaying());
 }
 
-// ==============================================================================
-// دوال الاستعلام عن الحالة
-// ==============================================================================
 bool PlayerAudio::isPlaying() const
 {
     return playing;
@@ -316,12 +303,7 @@ double PlayerAudio::getTotalLength() const
 
 bool PlayerAudio::label_time_visibility()
 {
-    if (isFileLoaded()) {
-        return true;
-    }
-    else {
-        return false;
-    }
+    return isFileLoaded();
 }
 
 double PlayerAudio::get_total_time()
@@ -335,9 +317,6 @@ double PlayerAudio::get_current_time()
     return current_time;
 }
 
-// ==============================================================================
-// دوال جديدة للميزة 5: البيانات الوصفية
-// ==============================================================================
 juce::String PlayerAudio::getCurrentFileName() const
 {
     return currentFileName;
@@ -354,7 +333,8 @@ juce::StringArray PlayerAudio::getMetadata() const
     }
 
     auto allKeys = metadataArray.getAllKeys();
-    for (auto& key : allKeys) {
+    for (int i = 0; i < allKeys.size(); ++i) {
+        auto& key = allKeys[i];
         juce::String value = metadataArray.getValue(key, "");
         if (value.isNotEmpty()) {
             metadataList.add(key + ": " + value);
@@ -376,9 +356,6 @@ juce::String PlayerAudio::getFormattedDuration() const
     return juce::String::formatted("%02d:%02d", minutes, seconds);
 }
 
-// ==============================================================================
-// الحصول على معلومات التصحيح
-// ==============================================================================
 juce::String PlayerAudio::getDebugInfo() const
 {
     juce::String info;
@@ -387,13 +364,12 @@ juce::String PlayerAudio::getDebugInfo() const
     info += "Playing: " + juce::String(isPlaying() ? "Yes" : "No") + "\n";
     info += "Position: " + juce::String(getCurrentPosition()) + "\n";
     info += "Muted: " + juce::String(isMuted() ? "Yes" : "No") + "\n";
-    
     info += "Speed: " + juce::String(getPlaybackSpeed()) + "x\n";
 
     auto metadata = getMetadata();
-    for (auto& line : metadata)
+    for (int i = 0; i < metadata.size(); ++i)
     {
-        info += line + "\n";
+        info += metadata[i] + "\n";
     }
 
     return info;
