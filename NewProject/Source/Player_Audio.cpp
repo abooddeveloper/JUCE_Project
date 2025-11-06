@@ -236,7 +236,7 @@ void PlayerAudio::setPosition(double position)
 
 void PlayerAudio::loop_on()
 {
-    if (!transportSource.isPlaying()) {
+    if (is_transportSource_playing()) {
         transportSource.setPosition(0.0);
         transportSource.start();
     }
@@ -271,7 +271,7 @@ void PlayerAudio::set_slider_looping()
 
 bool PlayerAudio::is_transportSource_playing()
 {
-    return (!transportSource.isPlaying());
+    return(transportSource.getCurrentPosition() >= total_time ? true : false);
 }
 
 bool PlayerAudio::isPlaying() const

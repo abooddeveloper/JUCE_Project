@@ -70,10 +70,10 @@ private:
     bool isMutedFlag = false;
     float volumeBeforeMute = 0.5f;
 
-    double current_time = 0.0;
-    double total_time = 0.0;
-    double start_position_time = 0.0;
-    double end_position_time = 1.0;
+    double current_time ;
+    double total_time ;
+    double start_position_time ;
+    double end_position_time ;
 
     juce::StringPairArray metadataArray;
 

@@ -44,13 +44,13 @@ public:
 private:
     PlayerAudio& audioPlayer;
 
-    bool will_looping = false;
-    bool isPositionSliderDragging = false;
-    double total_time = 0.0;
-    double current_time = 0.0;
+    bool will_looping ;
+   
+    double total_time ;
+    double current_time ;
     juce::String time_text;
-    double loop_start_point = 0.0;
-    double loop_end_point = 1.0;
+    double loop_start_point=0.0 ;
+    double loop_end_point=1.0 ;
 
     // الأزرار الأساسية
     juce::TextButton loadButton{ "Load File" };
@@ -72,7 +72,7 @@ private:
     juce::Slider position_slider;
     juce::Label label_time;
     juce::Slider loop_slider;
-    juce::ToggleButton range_loop_button{ "Range Loop" };
+    juce::TextButton range_loop_button{ "Range Loop" };
 
     juce::Label metadataLabel;
     juce::TextEditor metadataDisplay;

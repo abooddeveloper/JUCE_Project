@@ -54,7 +54,7 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioProcessor)
     label_time.setText("0:00 / 0:00", juce::dontSendNotification);
     label_time.setColour(juce::Label::textColourId, juce::Colours::white);
     label_time.setJustificationType(juce::Justification::centredRight);
-
+    label_time.setVisible(audioPlayer.label_time_visibility());
     // إعداد منزلق التكرار
     loop_slider.setSliderStyle(juce::Slider::TwoValueHorizontal);
     loop_slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
@@ -398,6 +398,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         will_looping = loop_button.getToggleState();
         if (will_looping) {
             loop_button.setButtonText("Loop:on");
+            audioPlayer.loop_on();
         }
         else {
             loop_button.setButtonText("Loop:off");
@@ -409,6 +410,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
             range_loop_button.setButtonText("Range Loop:on");
             loop_slider.setVisible(true);
             audioPlayer.set_loop_by_buttons(loop_start_point, loop_end_point);
+            audioPlayer.set_slider_looping();
         }
         else {
             range_loop_button.setButtonText("Range Loop:off");
@@ -481,37 +483,20 @@ void PlayerGUI::timerCallback()
 {
     if (audioPlayer.isFileLoaded())
     {
+        label_time.setVisible(audioPlayer.label_time_visibility());
         current_time = audioPlayer.get_current_time();
         total_time = audioPlayer.get_total_time();
-
-        int current_minutes = static_cast<int>(current_time) / 60;
-        int current_seconds = static_cast<int>(current_time) % 60;
-        int total_minutes = static_cast<int>(total_time) / 60;
-        int total_seconds = static_cast<int>(total_time) % 60;
-
-        time_text = juce::String(current_minutes) + ":" +
-            (current_seconds < 10 ? "0" : "") + juce::String(current_seconds) +
-            " / " +
-            juce::String(total_minutes) + ":" +
-            (total_seconds < 10 ? "0" : "") + juce::String(total_seconds);
-
+        time_text = time_in_minutes(current_time) + ":" + time_in_seconds(current_time) + " / " + time_in_minutes(total_time) + ":" + time_in_seconds(total_time);
         label_time.setText(time_text, juce::dontSendNotification);
-
-        if (!isPositionSliderDragging)
-        {
-            position_slider.setValue(current_time / total_time, juce::dontSendNotification);
-        }
-
+        position_slider.setValue(current_time / total_time, juce::dontSendNotification);
         if (range_loop_button.getToggleState() && audioPlayer.loop_position_state()) {
             audioPlayer.set_slider_looping();
         }
-
         if (will_looping && audioPlayer.is_transportSource_playing()) {
             audioPlayer.loop_on();
         }
-    }
 
-    // إعادة الرسم لتحديث المؤشر على الموجة
+    }
     repaint();
 }
 
@@ -530,9 +515,9 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
     else if (slider == &position_slider)
     {
         if (audioPlayer.isFileLoaded()) {
-            isPositionSliderDragging = true;
+            
             audioPlayer.position_slider_value(position_slider.getValue());
-            isPositionSliderDragging = false;
+            
         }
     }
     else if (slider == &loop_slider)
@@ -540,6 +525,7 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
         loop_start_point = slider->getMinValue();
         loop_end_point = slider->getMaxValue();
         audioPlayer.set_loop_by_buttons(loop_start_point, loop_end_point);
+        audioPlayer.set_slider_looping();
     }
 }
 
